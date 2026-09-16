@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0e0f13">
+<title>Cartes d'anglais</title>
+<style>
+  :root{
+    --bg:#0e0f13; --card:#171922; --card2:#1d2029; --line:#2a2e3a;
+    --txt:#eceef4; --dim:#8b91a3; --faint:#5f6576;
+    --accent:#8b9dff; --accent-soft:rgba(139,157,255,.14); --good:#4ecb8f;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:560px;margin:0 auto;padding:22px 18px calc(30px + env(safe-area-inset-bottom));min-height:100vh;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  .brand{font-size:16px;font-weight:600;letter-spacing:.2px}
+  .brand span{color:var(--faint)}
+  .hbtns{display:flex;gap:8px}
+  .iconbtn{position:relative;background:var(--card);border:1px solid var(--line);color:var(--dim);width:40px;height:40px;border-radius:11px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .iconbtn:active{transform:scale(.95)}
+  .badge{position:absolute;top:-5px;right:-5px;background:var(--accent);color:#0e0f13;font-size:10px;font-weight:800;min-width:16px;height:16px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 3px}
+  .chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:18px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{background:var(--card);border:1px solid var(--line);color:var(--dim);padding:7px 14px;border-radius:999px;font-size:13px;font-weight:500;white-space:nowrap;cursor:pointer}
+  .chip.on{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+  .stage{flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px}
+  .counter{text-align:center;color:var(--faint);font-size:13px;letter-spacing:.3px}
+  .flip{perspective:1600px;height:52vh;max-height:440px;min-height:300px}
+  .inner{position:relative;width:100%;height:100%;transition:transform .55s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d;cursor:pointer}
+  .inner.flipped{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:26px;display:flex;flex-direction:column;box-shadow:0 20px 50px -30px rgba(0,0,0,.8)}
+  .back{transform:rotateY(180deg)}
+  .tagrow{display:flex;align-items:center;justify-content:space-between}
+  .tag{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--faint)}
+  .tag.en{color:var(--accent)}
+  .say{background:var(--accent-soft);border:0;color:var(--accent);width:40px;height:40px;border-radius:11px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .say:active{transform:scale(.92)}
+  .sentence{flex:1;display:flex;align-items:center;font-size:23px;line-height:1.5;font-weight:500}
+  .back .sentence{font-weight:450}
+  .sentence .txt{display:block}
+  .hint{color:var(--faint);font-size:12px;text-align:center}
+  .w{cursor:pointer;padding-bottom:1px;border-bottom:1.5px solid transparent}
+  .w.known{border-bottom-color:rgba(139,157,255,.3)}
+  .w:active{color:var(--accent);border-bottom-color:var(--accent)}
+  .nav{display:flex;align-items:center;justify-content:center;gap:18px}
+  .nav button{background:var(--card);border:1px solid var(--line);color:var(--txt);width:52px;height:52px;border-radius:16px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .nav button:active{transform:scale(.95)}
+  .nav button:disabled{opacity:.35}
+  .nav .mid{min-width:64px;text-align:center;color:var(--dim);font-size:13px}
+  .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;color:var(--dim);padding:20px}
+  .empty h2{color:var(--txt);font-size:18px;margin:0;font-weight:600}
+  .empty p{margin:0;font-size:14px;line-height:1.55;max-width:340px}
+  .btn{background:var(--accent);border:0;color:#0e0f13;padding:12px 20px;border-radius:13px;font-size:15px;font-weight:650;cursor:pointer}
+  .btn.ghost{background:var(--card);border:1px solid var(--line);color:var(--txt);font-weight:500}
+  .sheet-bg,.panel-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:.22s;z-index:40;backdrop-filter:blur(2px)}
+  .sheet-bg.show,.panel-bg.show{opacity:1;pointer-events:auto}
+  .sheet,.panel{position:fixed;left:0;right:0;bottom:0;z-index:50;max-width:560px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-bottom:0;border-radius:26px 26px 0 0;padding:22px 22px calc(26px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+  .sheet.show,.panel.show{transform:translateY(0)}
+  .grip{width:38px;height:4px;background:var(--line);border-radius:99px;margin:0 auto 16px}
+  .sheet .word{font-size:24px;font-weight:650}
+  .sheet .fr{color:var(--accent);font-size:16px;margin-top:6px;font-weight:500}
+  .sheet .exlabel{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint);margin-top:18px}
+  .sheet .ex{font-size:15.5px;line-height:1.6;color:var(--dim);margin-top:6px;font-style:italic}
+  .sheet-actions{display:flex;gap:10px;margin-top:18px}
+  .sheet-actions .btn{flex:1;text-align:center}
+  .panel h3{margin:0 0 4px;font-size:18px}
+  .panel p{margin:0 0 14px;color:var(--dim);font-size:13.5px;line-height:1.5}
+  textarea{width:100%;min-height:120px;background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:14px;padding:13px;font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical}
+  textarea:focus{outline:none;border-color:var(--accent)}
+  .panel .row{display:flex;gap:10px;margin-top:12px}
+  .panel .row .btn,.panel .row .btn.ghost{flex:1;text-align:center}
+  .small{color:var(--faint);font-size:12px;margin-top:10px;line-height:1.5}
+  .savedlist{max-height:52vh;overflow-y:auto;margin-top:4px}
+  .sw{background:var(--card2);border:1px solid var(--line);border-radius:13px;padding:12px 13px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .sw .swword{font-weight:650;font-size:15px}
+  .sw .swfr{color:var(--accent);font-size:13px;margin-top:2px}
+  .sw .swex{color:var(--dim);font-size:12.5px;font-style:italic;margin-top:4px;line-height:1.45}
+  .sw .swbtns{display:flex;gap:4px;flex:0 0 auto}
+  .mini{background:transparent;border:0;color:var(--dim);font-size:16px;cursor:pointer;padding:3px}
+  .mini:active{color:var(--accent)}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--good);color:#052616;font-weight:650;padding:10px 18px;border-radius:999px;font-size:13.5px;opacity:0;transition:.25s;z-index:60}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Cartes <span>· anglais</span></div>
+    <div class="hbtns">
+      <button class="iconbtn" id="open-saved" title="Mes mots">☆<span class="badge" id="saved-badge" style="display:none">0</span></button>
+      <button class="iconbtn" id="open-import" title="Importer">＋</button>
+    </div>
+  </header>
+  <div class="chips" id="chips"></div>
+  <div class="stage" id="stage"></div>
+</div>
+
+<div class="sheet-bg" id="sheet-bg"></div>
+<div class="sheet" id="sheet">
+  <div class="grip"></div>
+  <div class="word" id="s-word">—</div>
+  <div class="fr" id="s-fr"></div>
+  <div class="exlabel" id="s-exlabel" style="display:none">Exemple</div>
+  <div class="ex" id="s-ex"></div>
+  <div class="sheet-actions">
+    <button class="btn" id="s-save">＋ Enregistrer</button>
+    <button class="iconbtn" id="s-say">🔊</button>
+  </div>
+</div>
+
+<div class="panel-bg" id="saved-bg"></div>
+<div class="panel" id="saved-panel">
+  <div class="grip"></div>
+  <h3>Mes mots à apprendre</h3>
+  <p id="saved-empty" style="display:none">Aucun mot enregistré. Touche un mot sur une carte, puis « Enregistrer ».</p>
+  <div class="savedlist" id="saved-list"></div>
+  <div class="row" style="margin-top:14px">
+    <button class="btn ghost" id="saved-close" style="flex:1">Fermer</button>
+  </div>
+</div>
+
+<div class="panel-bg" id="panel-bg"></div>
+<div class="panel" id="panel">
+  <div class="grip"></div>
+  <h3>Importer un paquet</h3>
+  <p>Colle ici le paquet de cartes (JSON) que Claude t'a préparé, ou charge un fichier <b>.json</b>.</p>
+  <textarea id="import-text" placeholder='{ "course": "Finance", "cards": [ ... ] }'></textarea>
+  <div class="row">
+    <button class="btn ghost" id="import-file-btn">📄 Fichier .json</button>
+    <button class="btn" id="import-do">Importer</button>
+  </div>
+  <input type="file" id="import-file" accept="application/json,.json" style="display:none">
+  <div class="small">Astuce iPhone : ouvre la page dans Safari, puis <b>Partager → Ajouter à l'écran d'accueil</b>.</div>
+  <div class="row" style="margin-top:16px">
+    <button class="btn ghost" id="export-do" style="flex:1">⬇️ Exporter</button>
+    <button class="btn ghost" id="close-panel" style="flex:1">Fermer</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY="cartes-anglais-v1";
+const STARTER=[
+ // ---------- MOTS DE LIAISON ----------
+ {course:"Liaison",fr:"Le produit était excellent ; cependant, personne ne l'a acheté.",
+  en:"The product was excellent; however, nobody bought it.",
+  words:{however:{fr:"cependant, pourtant",ex:"The plan was good; however, it failed."}}},
+ {course:"Liaison",fr:"Les coûts ont baissé, donc la marge a augmenté.",
+  en:"Costs went down, therefore the margin increased.",
+  words:{therefore:{fr:"donc, par conséquent",ex:"He was late; therefore, he missed the train."}}},
+ {course:"Liaison",fr:"Bien que le marché soit difficile, l'entreprise a progressé.",
+  en:"Although the market was tough, the company grew.",
+  words:{although:{fr:"bien que, même si",ex:"Although it rained, they kept playing."}}},
+ {course:"Liaison",fr:"Le chiffre d'affaires a augmenté, tandis que les profits ont chuté.",
+  en:"Revenue rose, whereas profits fell.",
+  words:{whereas:{fr:"tandis que, alors que",ex:"She likes tea, whereas he prefers coffee."}}},
+ {course:"Liaison",fr:"De plus, la marque a lancé un nouveau produit.",
+  en:"Moreover, the brand launched a new product.",
+  words:{moreover:{fr:"de plus, en outre",ex:"The car is fast; moreover, it is cheap."}}},
+ {course:"Liaison",fr:"Le plan a échoué ; néanmoins, ils ont beaucoup appris.",
+  en:"The plan failed; nevertheless, they learned a lot.",
+  words:{nevertheless:{fr:"néanmoins, malgré tout",ex:"It was hard; nevertheless, she finished."}}},
+ {course:"Liaison",fr:"Malgré la crise, l'entreprise a tenu.",
+  en:"Despite the crisis, the company held on.",
+  words:{despite:{fr:"malgré",ex:"Despite the rain, they went out."}}},
+ {course:"Liaison",fr:"En conséquence, les ventes ont doublé.",
+  en:"As a result, sales doubled.",
+  words:{result:{fr:"« as a result » = en conséquence",ex:"As a result of the ad, sales doubled."}}},
+ // ---------- FINANCE ----------
+ {course:"Finance",fr:"Le résultat net cachait un vrai problème de trésorerie.",
+  en:"The net income hid a real cash flow problem.",
+  words:{income:{fr:"le revenu, le résultat",ex:"Net income is what's left after all costs."},
+         cash:{fr:"la trésorerie, le liquide",ex:"The company almost ran out of cash."},
+         flow:{fr:"le flux",ex:"Cash flow tracks money in and money out."}}},
+ {course:"Finance",fr:"L'essentiel de la valeur vient des actifs incorporels.",
+  en:"Most of the firm's value lies in its intangible assets.",
+  words:{value:{fr:"la valeur",ex:"Investors estimate the true value of a firm."},
+         intangible:{fr:"incorporel, immatériel",ex:"Patents are intangible assets."},
+         assets:{fr:"les actifs",ex:"Assets are what a company owns."}}},
+ {course:"Finance",fr:"Le bilan doit toujours être équilibré.",
+  en:"The balance sheet must always balance.",
+  words:{balance:{fr:"l'équilibre ; le bilan",ex:"The balance sheet lists assets and liabilities."},
+         sheet:{fr:"la feuille, le tableau",ex:"A balance sheet is a snapshot at one date."}}},
+ {course:"Finance",fr:"Emprunter coûte cher quand les taux d'intérêt montent.",
+  en:"Borrowing becomes expensive when interest rates rise.",
+  words:{borrowing:{fr:"l'emprunt",ex:"Borrowing lets a firm finance its growth."},
+         interest:{fr:"les intérêts",ex:"They pay interest every month on the loan."},
+         rates:{fr:"les taux",ex:"Central banks can raise interest rates."}}},
+ // ---------- MARKETING ----------
+ {course:"Marketing",fr:"Un client fidèle vaut bien plus qu'un client attiré une fois.",
+  en:"A loyal customer is worth far more than one attracted only once.",
+  words:{loyal:{fr:"fidèle",ex:"A loyal customer keeps coming back."},
+         customer:{fr:"le client",ex:"The customer is at the center of marketing."},
+         worth:{fr:"valoir ; la valeur",ex:"This deal is worth a lot to them."}}},
+ {course:"Marketing",fr:"Le marketing ne se limite pas à la publicité.",
+  en:"Marketing is not just advertising.",
+  words:{marketing:{fr:"le marketing",ex:"Marketing decides what to say and to whom."},
+         advertising:{fr:"la publicité",ex:"Advertising is only one part of marketing."}}},
+ // ---------- COMPORTEMENT DU CONSOMMATEUR ----------
+ {course:"Conso",fr:"Le consommateur compare les options avant d'acheter.",
+  en:"The consumer compares the options before buying.",
+  words:{consumer:{fr:"le consommateur",ex:"The consumer chooses between many brands."},
+         options:{fr:"les options, les choix",ex:"He weighed all the options first."}}},
+ {course:"Conso",fr:"Une mauvaise expérience détruit la confiance.",
+  en:"A bad experience destroys trust.",
+  words:{experience:{fr:"l'expérience",ex:"A good experience brings customers back."},
+         trust:{fr:"la confiance",ex:"Trust takes time to build."}}},
+ // ---------- ÉTUDES DE MARCHÉ ----------
+ {course:"Études",fr:"Une étude de marché sert à réduire l'incertitude.",
+  en:"Market research helps reduce uncertainty.",
+  words:{research:{fr:"la recherche, l'étude",ex:"Market research guides the decision."},
+         reduce:{fr:"réduire",ex:"We must reduce the risk before deciding."},
+         uncertainty:{fr:"l'incertitude",ex:"Data lowers uncertainty."}}},
+ // ---------- STRATÉGIE ----------
+ {course:"Stratégie",fr:"Un avantage concurrentiel n'a de valeur que s'il est dur à copier.",
+  en:"A competitive advantage is only valuable if it is hard to copy.",
+  words:{competitive:{fr:"concurrentiel, compétitif",ex:"They built a strong competitive position."},
+         advantage:{fr:"l'avantage",ex:"Speed is their main advantage."},
+         valuable:{fr:"précieux, de valeur",ex:"A rare skill is very valuable."}}},
+ // ---------- OPÉRATIONS ----------
+ {course:"Opérations",fr:"Un goulot d'étranglement limite toute la ligne de production.",
+  en:"A bottleneck limits the whole production line.",
+  words:{bottleneck:{fr:"le goulot d'étranglement",ex:"The slow machine is the bottleneck."},
+         production:{fr:"la production",ex:"Production stopped for two hours."}}},
+ // ---------- RH ----------
+ {course:"RH",fr:"Un salarié motivé est plus productif.",
+  en:"A motivated employee is more productive.",
+  words:{employee:{fr:"le salarié, l'employé",ex:"Every employee got a bonus."},
+         productive:{fr:"productif",ex:"A rested team is more productive."},
+         motivated:{fr:"motivé",ex:"A motivated employee works harder."}}}
+];
+
+
+// dictionnaire de mots courants — permet à presque tous les mots d'avoir une fiche
+const GLOSSARY={
+ the:{fr:"le, la, les",ex:"The company grew fast."},a:{fr:"un, une",ex:"A good plan."},an:{fr:"un, une (devant voyelle)",ex:"An option."},
+ of:{fr:"de",ex:"The value of the firm."},to:{fr:"à, vers ; (pour)",ex:"Hard to copy."},in:{fr:"dans, en",ex:"Value lies in assets."},
+ on:{fr:"sur",ex:"They held on."},at:{fr:"à (lieu, moment)",ex:"At one date."},for:{fr:"pour",ex:"For many firms."},
+ with:{fr:"avec",ex:"With its team."},by:{fr:"par",ex:"Bought by them."},from:{fr:"de, depuis",ex:"Money from sales."},
+ its:{fr:"son, sa, ses",ex:"Its intangible assets."},it:{fr:"il, elle, cela",ex:"Nobody bought it."},this:{fr:"ce, cette, ceci",ex:"This deal."},
+ that:{fr:"que, ce, cela",ex:"The plan that failed."},they:{fr:"ils, elles",ex:"They learned a lot."},them:{fr:"les, eux",ex:"Worth a lot to them."},
+ is:{fr:"est",ex:"It is hard."},are:{fr:"sont",ex:"Assets are what you own."},was:{fr:"était",ex:"The market was tough."},
+ were:{fr:"étaient",ex:"They were late."},be:{fr:"être",ex:"Must be equal."},been:{fr:"été (participe)",ex:"Has been used."},
+ must:{fr:"devoir (obligation)",ex:"It must balance."},can:{fr:"pouvoir",ex:"They can raise rates."},will:{fr:"futur : va, -ra",ex:"Sales will rise."},
+ not:{fr:"ne… pas",ex:"Not just advertising."},just:{fr:"seulement, juste",ex:"Not just advertising."},only:{fr:"seulement",ex:"Only once."},
+ always:{fr:"toujours",ex:"Must always balance."},when:{fr:"quand, lorsque",ex:"When rates rise."},before:{fr:"avant",ex:"Before buying."},
+ than:{fr:"que (comparaison)",ex:"More than one."},more:{fr:"plus, davantage",ex:"Worth far more."},far:{fr:"loin ; bien (intensif)",ex:"Far more valuable."},
+ most:{fr:"la plupart ; le plus",ex:"Most of the value."},real:{fr:"réel, vrai",ex:"A real problem."},new:{fr:"nouveau",ex:"A new product."},
+ hard:{fr:"dur, difficile",ex:"Hard to copy."},good:{fr:"bon",ex:"A good plan."},bad:{fr:"mauvais",ex:"A bad experience."},
+ tough:{fr:"difficile, rude",ex:"The market was tough."},whole:{fr:"entier, tout le",ex:"The whole line."},line:{fr:"la ligne",ex:"The production line."},
+ one:{fr:"un ; on (indéfini)",ex:"More than one."},once:{fr:"une fois",ex:"Attracted only once."},and:{fr:"et",ex:"Assets and liabilities."},
+ but:{fr:"mais",ex:"Good, but late."},if:{fr:"si",ex:"Only if it is hard."},no:{fr:"aucun, non",ex:"No cash left."},nobody:{fr:"personne",ex:"Nobody bought it."},
+ lies:{fr:"réside, se trouve",ex:"Value lies in assets."},lie:{fr:"résider ; mentir",ex:"The value lies here."},help:{fr:"aider",ex:"It helps a lot."},helps:{fr:"aide",ex:"Research helps decide."},
+ hid:{fr:"cachait (hide)",ex:"It hid a problem."},problem:{fr:"le problème",ex:"A cash flow problem."},grew:{fr:"a grandi (grow)",ex:"The company grew."},
+ rose:{fr:"a augmenté (rise)",ex:"Revenue rose."},fell:{fr:"a chuté (fall)",ex:"Profits fell."},rise:{fr:"monter, augmenter",ex:"When rates rise."},
+ went:{fr:"est allé (go)",ex:"Costs went down."},down:{fr:"en bas, vers le bas",ex:"Costs went down."},up:{fr:"en haut, vers le haut",ex:"Prices went up."},
+ becomes:{fr:"devient",ex:"Borrowing becomes costly."},become:{fr:"devenir",ex:"It can become expensive."},expensive:{fr:"cher, coûteux",ex:"Borrowing is expensive."},
+ doubled:{fr:"a doublé",ex:"Sales doubled."},sales:{fr:"les ventes",ex:"Sales doubled."},bought:{fr:"a acheté (buy)",ex:"Nobody bought it."},
+ buying:{fr:"l'achat, en achetant",ex:"Before buying."},keeps:{fr:"continue de, garde",ex:"He keeps coming back."},coming:{fr:"venant, qui vient",ex:"Coming back."},
+ back:{fr:"retour, en arrière",ex:"Comes back often."},held:{fr:"a tenu (hold)",ex:"The company held on."},crisis:{fr:"la crise",ex:"Despite the crisis."},
+ market:{fr:"le marché",ex:"The market was tough."},company:{fr:"l'entreprise",ex:"The company grew."},firm:{fr:"l'entreprise, la firme",ex:"The firm's value."},
+ product:{fr:"le produit",ex:"A new product."},brand:{fr:"la marque",ex:"The brand launched it."},launched:{fr:"a lancé",ex:"The brand launched a product."},
+ learned:{fr:"a appris",ex:"They learned a lot."},lot:{fr:"beaucoup",ex:"Learned a lot."},deal:{fr:"l'affaire, le marché",ex:"This deal is worth a lot."},
+ choose:{fr:"choisir",ex:"They choose a brand."},chooses:{fr:"choisit",ex:"He chooses fast."},compares:{fr:"compare",ex:"He compares the options."},
+ destroys:{fr:"détruit",ex:"A bad experience destroys trust."},reduce:{fr:"réduire",ex:"Reduce the risk."},costs:{fr:"les coûts",ex:"Costs went down."},
+ margin:{fr:"la marge",ex:"The margin increased."},increased:{fr:"a augmenté",ex:"The margin increased."},revenue:{fr:"le chiffre d'affaires",ex:"Revenue rose."},
+ profits:{fr:"les profits",ex:"Profits fell."},excellent:{fr:"excellent",ex:"The product was excellent."}
+};
+let store={cards:[],saved:[]};
+function load(){try{const r=localStorage.getItem(KEY);store=r?JSON.parse(r):null;}catch(e){store=null;}
+  if(!store||!store.cards||!store.cards.length){store={cards:STARTER.map(c=>({id:uid(),...c})),saved:[]};}
+  if(!store.saved)store.saved=[];}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function esc(s){return(s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1700);}
+function speak(t){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.9;speechSynthesis.speak(u);}catch(e){}}
+
+let filter="Tous", idx=0, flipped=false, curWord=null;
+
+function courses(){return["Tous",...[...new Set(store.cards.map(c=>c.course||"Divers"))]];}
+function deck(){return filter==="Tous"?store.cards:store.cards.filter(c=>(c.course||"Divers")===filter);}
+function renderChips(){document.getElementById('chips').innerHTML=courses().map(c=>`<div class="chip ${c===filter?'on':''}" data-c="${esc(c)}">${esc(c)}</div>`).join('');}
+
+function renderStage(){
+  const d=deck(),stage=document.getElementById('stage');
+  if(!d.length){stage.innerHTML=`<div class="empty"><h2>Aucune carte ici</h2><p>Importe un paquet, ou demande à Claude d'en générer à partir d'un cours.</p><button class="btn" onclick="document.getElementById('open-import').click()">Importer</button></div>`;return;}
+  if(idx>=d.length)idx=0;
+  const c=d[idx];
+  stage.innerHTML=`<div class="counter">${esc(c.course||"Divers")} · ${idx+1} / ${d.length}</div>
+    <div class="flip"><div class="inner${flipped?' flipped':''}" id="inner">
+      <div class="face front"><div class="tagrow"><div class="tag">Français</div></div><div class="sentence">${esc(c.fr)}</div><div class="hint">touche la carte pour la traduction</div></div>
+      <div class="face back"><div class="tagrow"><div class="tag en">English</div><button class="say" id="say-en">🔊</button></div><div class="sentence">${renderEN(c)}</div><div class="hint">touche un mot pour son sens</div></div>
+    </div></div>
+    <div class="nav"><button id="prev" ${idx===0?'disabled':''}>‹</button><div class="mid">${idx+1} / ${d.length}</div><button id="next" ${idx>=d.length-1?'disabled':''}>›</button></div>`;
+  document.getElementById('inner').onclick=()=>{flipped=!flipped;document.getElementById('inner').classList.toggle('flipped',flipped);};
+  document.getElementById('say-en').onclick=e=>{e.stopPropagation();speak(c.en);};
+  document.getElementById('prev').onclick=e=>{e.stopPropagation();if(idx>0){idx--;flipped=false;renderStage();}};
+  document.getElementById('next').onclick=e=>{e.stopPropagation();if(idx<d.length-1){idx++;flipped=false;renderStage();}};
+  stage.querySelectorAll('.w').forEach(w=>w.addEventListener('click',e=>{e.stopPropagation();openWord(c,w.dataset.k);}));
+}
+function defnFor(c,key){return (c.words&&c.words[key])||GLOSSARY[key]||null;}
+function renderEN(c){
+  const parts=c.en.split(' ').map(tok=>{const key=tok.toLowerCase().replace(/[.,;:!?"'`()]/g,'');
+    if(!key)return esc(tok);
+    const cls=defnFor(c,key)?'w known':'w';
+    return `<span class="${cls}" data-k="${esc(key)}">${esc(tok)}</span>`;});
+  return '<span class="txt">'+parts.join(' ')+'</span>';}
+
+function openWord(c,key){const w=defnFor(c,key)||{fr:"",ex:""};
+  curWord={word:key,fr:w.fr||"",ex:w.ex||""};
+  document.getElementById('s-word').textContent=key;
+  document.getElementById('s-fr').textContent=w.fr||"— pas de fiche, mais tu peux l'écouter et l'enregistrer";
+  const ex=w.ex||"";document.getElementById('s-exlabel').style.display=ex?'block':'none';document.getElementById('s-ex').textContent=ex;
+  document.getElementById('sheet-bg').classList.add('show');document.getElementById('sheet').classList.add('show');}
+function closeSheet(){document.getElementById('sheet-bg').classList.remove('show');document.getElementById('sheet').classList.remove('show');}
+function saveWord(){if(!curWord)return;
+  if(store.saved.some(s=>s.word.toLowerCase()===curWord.word.toLowerCase())){toast('Déjà enregistré');closeSheet();return;}
+  store.saved.unshift({id:uid(),...curWord});save();updateBadge();toast('Enregistré ✓');closeSheet();}
+
+function updateBadge(){const n=store.saved.length,b=document.getElementById('saved-badge');
+  if(n){b.style.display='flex';b.textContent=n;}else b.style.display='none';}
+function renderSaved(){
+  const list=document.getElementById('saved-list'),empty=document.getElementById('saved-empty');
+  if(!store.saved.length){list.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  list.innerHTML=store.saved.map(s=>`<div class="sw"><div><div class="swword">${esc(s.word)}</div>
+    <div class="swfr">${esc(s.fr)}</div>${s.ex?`<div class="swex">${esc(s.ex)}</div>`:''}</div>
+    <div class="swbtns"><button class="mini" data-say="${esc(s.word)}">🔊</button><button class="mini" data-del="${s.id}">🗑</button></div></div>`).join('');
+}
+function openSaved(){renderSaved();document.getElementById('saved-bg').classList.add('show');document.getElementById('saved-panel').classList.add('show');}
+function closeSaved(){document.getElementById('saved-bg').classList.remove('show');document.getElementById('saved-panel').classList.remove('show');}
+
+function openPanel(){document.getElementById('panel-bg').classList.add('show');document.getElementById('panel').classList.add('show');}
+function closePanel(){document.getElementById('panel-bg').classList.remove('show');document.getElementById('panel').classList.remove('show');}
+function doImport(raw){let data;try{data=JSON.parse(raw);}catch(e){toast('JSON illisible');return;}
+  const course=data.course||"Divers";const cards=(data.cards||data);if(!Array.isArray(cards)){toast('Format non reconnu');return;}
+  let n=0;cards.forEach(c=>{if(c.fr&&c.en){store.cards.push({id:uid(),course:c.course||course,fr:c.fr,en:c.en,words:c.words||{}});n++;}});
+  save();filter=course;idx=0;flipped=false;renderChips();renderStage();closePanel();document.getElementById('import-text').value='';
+  toast(n+' carte'+(n>1?'s':'')+' importée'+(n>1?'s':'')+' ✓');}
+function doExport(){const blob=new Blob([JSON.stringify(store,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mes-cartes-anglais.json';a.click();URL.revokeObjectURL(a.href);}
+
+document.getElementById('chips').addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;filter=c.dataset.c;idx=0;flipped=false;renderChips();renderStage();});
+document.getElementById('sheet-bg').onclick=closeSheet;
+document.getElementById('s-save').onclick=saveWord;
+document.getElementById('s-say').onclick=()=>{if(curWord)speak(curWord.word);};
+document.getElementById('open-saved').onclick=openSaved;
+document.getElementById('saved-bg').onclick=closeSaved;
+document.getElementById('saved-close').onclick=closeSaved;
+document.getElementById('saved-list').addEventListener('click',e=>{
+  const say=e.target.closest('[data-say]');if(say){speak(say.dataset.say);return;}
+  const del=e.target.closest('[data-del]');if(del){store.saved=store.saved.filter(s=>s.id!==del.dataset.del);save();updateBadge();renderSaved();}});
+document.getElementById('open-import').onclick=openPanel;
+document.getElementById('panel-bg').onclick=closePanel;
+document.getElementById('close-panel').onclick=closePanel;
+document.getElementById('import-do').onclick=()=>{const t=document.getElementById('import-text').value.trim();if(t)doImport(t);else toast('Colle un paquet d\'abord');};
+document.getElementById('import-file-btn').onclick=()=>document.getElementById('import-file').click();
+document.getElementById('import-file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>doImport(r.result);r.readAsText(f);};
+document.getElementById('export-do').onclick=doExport;
+
+load();renderChips();renderStage();updateBadge();
+</script>
+</body>
+</html>
