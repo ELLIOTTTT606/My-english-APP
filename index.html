@@ -85,6 +85,9 @@
   .mini:active{color:var(--accent)}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--good);color:#052616;font-weight:650;padding:10px 18px;border-radius:999px;font-size:13.5px;opacity:0;transition:.25s;z-index:60}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .flip{touch-action:pan-y}
+  button:focus-visible,.chip:focus-visible,.w:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+  @media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -92,8 +95,9 @@
   <header>
     <div class="brand">Cartes <span>· anglais</span></div>
     <div class="hbtns">
-      <button class="iconbtn" id="open-saved" title="Mes mots">☆<span class="badge" id="saved-badge" style="display:none">0</span></button>
-      <button class="iconbtn" id="open-import" title="Importer">＋</button>
+      <button class="iconbtn" id="shuffle" title="Mélanger" aria-label="Mélanger les cartes">🔀</button>
+      <button class="iconbtn" id="open-saved" title="Mes mots" aria-label="Mes mots enregistrés">☆<span class="badge" id="saved-badge" style="display:none">0</span></button>
+      <button class="iconbtn" id="open-import" title="Importer" aria-label="Importer un paquet">＋</button>
     </div>
   </header>
   <div class="chips" id="chips"></div>
@@ -109,7 +113,8 @@
   <div class="ex" id="s-ex"></div>
   <div class="sheet-actions">
     <button class="btn" id="s-save">＋ Enregistrer</button>
-    <button class="iconbtn" id="s-say">🔊</button>
+    <button class="iconbtn" id="s-say" aria-label="Écouter le mot">🔊</button>
+    <button class="iconbtn" id="s-close" aria-label="Fermer">✕</button>
   </div>
 </div>
 
@@ -138,6 +143,7 @@
   <div class="small">Astuce iPhone : ouvre la page dans Safari, puis <b>Partager → Ajouter à l'écran d'accueil</b>.</div>
   <div class="row" style="margin-top:16px">
     <button class="btn ghost" id="export-do" style="flex:1">⬇️ Exporter</button>
+    <button class="btn ghost" id="reset-do" style="flex:1">↺ Réinitialiser</button>
     <button class="btn ghost" id="close-panel" style="flex:1">Fermer</button>
   </div>
 </div>
@@ -282,7 +288,7 @@ function esc(s){return(s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1700);}
 function speak(t){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.9;speechSynthesis.speak(u);}catch(e){}}
 
-let filter="Tous", idx=0, flipped=false, curWord=null;
+let filter="Tous", idx=0, flipped=false, curWord=null, swiped=false;
 
 function courses(){return["Tous",...[...new Set(store.cards.map(c=>c.course||"Divers"))]];}
 function deck(){return filter==="Tous"?store.cards:store.cards.filter(c=>(c.course||"Divers")===filter);}
@@ -295,16 +301,29 @@ function renderStage(){
   const c=d[idx];
   stage.innerHTML=`<div class="counter">${esc(c.course||"Divers")} · ${idx+1} / ${d.length}</div>
     <div class="flip"><div class="inner${flipped?' flipped':''}" id="inner">
-      <div class="face front"><div class="tagrow"><div class="tag">Français</div></div><div class="sentence">${esc(c.fr)}</div><div class="hint">touche la carte pour la traduction</div></div>
+      <div class="face front"><div class="tagrow"><div class="tag">Français</div></div><div class="sentence">${esc(c.fr)}</div><div class="hint">touche pour traduire · glisse pour changer de carte</div></div>
       <div class="face back"><div class="tagrow"><div class="tag en">English</div><button class="say" id="say-en">🔊</button></div><div class="sentence">${renderEN(c)}</div><div class="hint">touche un mot pour son sens</div></div>
     </div></div>
     <div class="nav"><button id="prev" ${idx===0?'disabled':''}>‹</button><div class="mid">${idx+1} / ${d.length}</div><button id="next" ${idx>=d.length-1?'disabled':''}>›</button></div>`;
-  document.getElementById('inner').onclick=()=>{flipped=!flipped;document.getElementById('inner').classList.toggle('flipped',flipped);};
+  document.getElementById('inner').onclick=()=>{if(swiped){swiped=false;return;}toggleFlip();};
   document.getElementById('say-en').onclick=e=>{e.stopPropagation();speak(c.en);};
-  document.getElementById('prev').onclick=e=>{e.stopPropagation();if(idx>0){idx--;flipped=false;renderStage();}};
-  document.getElementById('next').onclick=e=>{e.stopPropagation();if(idx<d.length-1){idx++;flipped=false;renderStage();}};
+  document.getElementById('prev').onclick=e=>{e.stopPropagation();go(-1);};
+  document.getElementById('next').onclick=e=>{e.stopPropagation();go(1);};
   stage.querySelectorAll('.w').forEach(w=>w.addEventListener('click',e=>{e.stopPropagation();openWord(c,w.dataset.k);}));
+  // glissement gauche/droite pour changer de carte
+  const box=stage.querySelector('.flip');let sx=0,sy=0;
+  box.addEventListener('touchstart',e=>{const t=e.changedTouches[0];sx=t.clientX;sy=t.clientY;swiped=false;},{passive:true});
+  box.addEventListener('touchend',e=>{const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+    if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.5){swiped=true;go(dx<0?1:-1);}},{passive:true});
 }
+function go(step){const d=deck();const n=idx+step;if(n<0||n>=d.length)return;idx=n;flipped=false;renderStage();}
+function toggleFlip(){const i=document.getElementById('inner');if(!i)return;flipped=!flipped;i.classList.toggle('flipped',flipped);}
+function shuffleDeck(){const d=deck();if(d.length<2){toast('Pas assez de cartes');return;}
+  const pick=d.slice();for(let i=pick.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pick[i],pick[j]]=[pick[j],pick[i]];}
+  let k=0;store.cards=store.cards.map(c=>d.indexOf(c)>-1?pick[k++]:c);
+  save();idx=0;flipped=false;renderStage();toast('Mélangé 🔀');}
+function resetAll(){if(!confirm('Revenir au paquet de départ ? Les cartes importées seront effacées (tes mots enregistrés sont gardés).'))return;
+  store.cards=STARTER.map(c=>({id:uid(),...c}));save();filter='Tous';idx=0;flipped=false;renderChips();renderStage();closePanel();toast('Paquet réinitialisé');}
 function defnFor(c,key){return (c.words&&c.words[key])||GLOSSARY[key]||null;}
 function renderEN(c){
   const parts=c.en.split(' ').map(tok=>{const key=tok.toLowerCase().replace(/[.,;:!?"'`()]/g,'');
@@ -341,11 +360,20 @@ function openPanel(){document.getElementById('panel-bg').classList.add('show');d
 function closePanel(){document.getElementById('panel-bg').classList.remove('show');document.getElementById('panel').classList.remove('show');}
 function doImport(raw){let data;try{data=JSON.parse(raw);}catch(e){toast('JSON illisible');return;}
   const course=data.course||"Divers";const cards=(data.cards||data);if(!Array.isArray(cards)){toast('Format non reconnu');return;}
-  let n=0;cards.forEach(c=>{if(c.fr&&c.en){store.cards.push({id:uid(),course:c.course||course,fr:c.fr,en:c.en,words:c.words||{}});n++;}});
-  save();filter=course;idx=0;flipped=false;renderChips();renderStage();closePanel();document.getElementById('import-text').value='';
+  let n=0,first=null;cards.forEach(c=>{if(c.fr&&c.en){const cc=c.course||course;if(!first)first=cc;
+    store.cards.push({id:uid(),course:cc,fr:c.fr,en:c.en,words:c.words||{}});n++;}});
+  if(!n){toast('Aucune carte valide (il faut « fr » et « en »)');return;}
+  save();filter=first;idx=0;flipped=false;renderChips();renderStage();closePanel();document.getElementById('import-text').value='';
   toast(n+' carte'+(n>1?'s':'')+' importée'+(n>1?'s':'')+' ✓');}
-function doExport(){const blob=new Blob([JSON.stringify(store,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mes-cartes-anglais.json';a.click();URL.revokeObjectURL(a.href);}
+let dlCap;
+async function doExport(){const json=JSON.stringify(store,null,2),name='mes-cartes-anglais.json';
+  // dans le viewer d'artifact, le téléchargement passe par la capacité « downloads »
+  if(window.claude&&window.claude.use){
+    try{if(dlCap===undefined)dlCap=await window.claude.use('downloads');}catch(e){dlCap=null;}
+    if(dlCap){try{await dlCap.save({filename:name,data:json});toast('Exporté ✓');}catch(e){toast('Export annulé');}return;}
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));
+  a.download=name;a.click();URL.revokeObjectURL(a.href);toast('Exporté ✓');}
 
 document.getElementById('chips').addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;filter=c.dataset.c;idx=0;flipped=false;renderChips();renderStage();});
 document.getElementById('sheet-bg').onclick=closeSheet;
@@ -364,6 +392,15 @@ document.getElementById('import-do').onclick=()=>{const t=document.getElementByI
 document.getElementById('import-file-btn').onclick=()=>document.getElementById('import-file').click();
 document.getElementById('import-file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>doImport(r.result);r.readAsText(f);};
 document.getElementById('export-do').onclick=doExport;
+document.getElementById('s-close').onclick=closeSheet;
+document.getElementById('shuffle').onclick=shuffleDeck;
+document.getElementById('reset-do').onclick=resetAll;
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT')return;
+  if(document.querySelector('.sheet.show,.panel.show')){if(e.key==='Escape'){closeSheet();closeSaved();closePanel();}return;}
+  if(e.key==='ArrowRight')go(1);
+  else if(e.key==='ArrowLeft')go(-1);
+  else if(e.key===' '||e.key==='Enter'){e.preventDefault();toggleFlip();}});
 
 load();renderChips();renderStage();updateBadge();
 </script>
